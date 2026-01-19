@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Caminhando na Grama</title>
+    <script src="https://unpkg.com/kaplay@3001.0.0-alpha.20/dist/kaplay.js"></script>
+</head>
+<body style="background-color: #2e8b57; margin: 0; overflow: hidden;">
+    <script>
+        // Inicializa o jogo
+        kaplay();
+
+        // Define a cor do fundo (Verde Grama)
+        setBackground(46, 139, 87);
+
+        // Cria o jogador (um quadrado azul por enquanto)
+        const player = add([
+            rect(40, 60), // Largura e altura
+            pos(center()), // Começa no centro
+            color(0, 0, 255), // Azul
+            area(), // Permite colisões
+            "player"
+        ]);
+
+        // Velocidade de caminhada
+        const SPEED = 200;
+
+        // Comandos de movimento
+        onKeyDown("left", () => {
+            player.move(-SPEED, 0);
+        });
+
+        onKeyDown("right", () => {
+            player.move(SPEED, 0);
+        });
+
+        onKeyDown("up", () => {
+            player.move(0, -SPEED);
+        });
+
+        onKeyDown("down", () => {
+            player.move(0, SPEED);
+        });
+
+        // Adiciona um texto simples
+        add([
+            text("Use as setas para andar na grama", { size: 24 }),
+            pos(20, 20),
+        ]);
+    </script>
+</body>
+</html>
