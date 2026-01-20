@@ -45,7 +45,3 @@ O jogador pode evoluir suas ferramentas usando os recursos coletados:
 * O sistema de colisão é baseado em distância euclidiana ().
 * O renderizador utiliza o `requestAnimationFrame` para garantir fluidez a 60 FPS.
 * A escuridão é aplicada via camada de preenchimento `rgba` sobre o canvas principal.
-
----
-
-**Gostaria que eu adicionasse uma seção de "Próximos Passos" com ideias de novas ferramentas ou inimigos para o seu projeto?**
