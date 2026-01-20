@@ -73,12 +73,19 @@
         let vida = 100, fome = 100, madeira = 0, pedra = 0, carne = 0;
         let nivel = 0; 
         const jogador = { x: canvas.width/2, y: canvas.height/2, tam: 30, vel: 5, frame: 0 };
-        const teclas = {};
+        let teclas = {};
         let arvores = [], pedras = [], porcos = [], cactos = [], cachorros = [], zumbis = [];
         let isMoving = false;
 
+        // Limpa as teclas para evitar que o personagem ande sozinho após alertas
+        function resetTeclas() {
+            teclas = {};
+            isMoving = false;
+        }
+
         function gerarCenario() {
             arvores = []; pedras = []; porcos = []; cactos = []; zumbis = [];
+            resetTeclas();
             
             if (mapaX === 0 && mapaY === 0) {
                 document.getElementById("localTxt").innerText = "Floresta";
@@ -119,6 +126,7 @@
                 if (!c.domado && Math.hypot(jogador.x - c.x, jogador.y - c.y) < 70) {
                     c.domado = true;
                     alert("Cachorro domado!");
+                    resetTeclas();
                 }
             });
         }
@@ -202,21 +210,19 @@
             if(mapaX === 1 && mapaY === 1) corChao = "#edc9af";
             ctx.fillStyle = corChao; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Cactos (Desenho e Dano)
+            // Cactos
             cactos.forEach(c => {
                 ctx.fillStyle = "#2ecc71"; 
-                ctx.fillRect(c.x, c.y, 15, 30); // Corpo
-                ctx.fillRect(c.x-5, c.y+10, 5, 10); // Braço 1
-                ctx.fillRect(c.x+15, c.y+5, 5, 10); // Braço 2
+                ctx.fillRect(c.x, c.y, 15, 30);
+                ctx.fillRect(c.x-5, c.y+10, 5, 10);
+                ctx.fillRect(c.x+15, c.y+5, 5, 10);
                 if(Math.hypot(jogador.x-c.x, jogador.y-c.y) < 25) vida -= 0.2;
             });
 
-            // Pedras (Desenho e Coleta)
+            // Pedras
             pedras.forEach((p, i) => {
                 ctx.fillStyle = "#666";
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
-                ctx.fillStyle = "#888"; // Detalhe da pedra
-                ctx.beginPath(); ctx.arc(p.x-5, p.y-5, p.r/2, 0, 7); ctx.fill();
                 if(Math.hypot(jogador.x-p.x, jogador.y-p.y) < 35) { pedras.splice(i, 1); pedra++; atualizarUI(); }
             });
 
@@ -238,11 +244,10 @@
                 if (Math.random() < 0.005) zumbis.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height });
             }
             zumbis.forEach((z, i) => {
-                let d = Math.hypot(jogador.x - z.x, jogador.y - z.y);
                 z.x += (jogador.x - z.x) * 0.01;
                 z.y += (jogador.y - z.y) * 0.01;
                 drawZombie(z);
-                if (d < 30) { 
+                if (Math.hypot(jogador.x - z.x, jogador.y - z.y) < 30) { 
                     if(nivel >= 1) zumbis.splice(i, 1); 
                     else vida -= 0.2; 
                 }
@@ -264,10 +269,14 @@
                 drawDog(dog);
             });
 
+            // Cama
             if(mapaX === 0 && mapaY === 0) {
                 ctx.fillStyle = "#ffeb3b"; ctx.fillRect(80, 80, 50, 25);
                 if(Math.hypot(jogador.x-105, jogador.y-92) < 40 && tempoDecorrido > 1200) { 
-                    tempoDecorrido = 0; diaAtual++; alert("Novo Dia!"); gerarCenario(); 
+                    tempoDecorrido = 0; diaAtual++; 
+                    alert("Novo Dia!"); 
+                    resetTeclas(); 
+                    gerarCenario(); 
                 }
             }
 
@@ -283,7 +292,8 @@
         }
 
         window.onkeydown = (e) => { teclas[e.key] = true; if(e.key.toLowerCase() === 'e') tentarDomar(); };
-        window.onkeyup = (e) => teclas[e.key] = false;
+        window.onkeyup = (e) => { teclas[e.key] = false; };
+        
         gerarCenario(); loop();
     </script>
 </body>
