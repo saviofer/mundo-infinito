@@ -45,3 +45,43 @@ O jogador pode evoluir suas ferramentas usando os recursos coletados:
 * O sistema de colisão é baseado em distância euclidiana ().
 * O renderizador utiliza o `requestAnimationFrame` para garantir fluidez a 60 FPS.
 * A escuridão é aplicada via camada de preenchimento `rgba` sobre o canvas principal.
+
+### Proximos updates
+
+#### 1. Sistema de Iluminação na Caverna
+
+Como a caverna agora é escura, você pode criar um item de **Tocha**.
+
+* **Mecânica:** Enquanto o jogador não tiver uma tocha, ele só enxerga o que está em volta dele (um pequeno círculo de luz).
+* **Crafting:** 2 Madeiras + 1 novo item (Carvão).
+
+#### 2. Novos Inimigos por Bioma
+
+Para tornar a exploração mais perigosa e recompensadora:
+
+* **Deserto:** Adicionar **Escorpiões** que se movem rápido mas têm pouca vida.
+* **Caverna:** Adicionar **Morcegos** que ignoram obstáculos.
+* **Pedreira:** Um **Golem de Pedra** lento, mas que precisa de uma Picareta para ser derrotado.
+
+#### 3. Coleta de Ouro e Loja
+
+Introduzir um recurso raro para permitir melhorias permanentes:
+
+* **Ouro:** Encontrado raramente na Caverna ou Pedreira.
+* **Vendedor:** Um NPC que aparece na Floresta a cada 5 dias para trocar Ouro por "Botas de Velocidade" ou "Poções de Vida".
+
+#### 4. Clima Dinâmico
+
+* **Chuva:** Na Floresta, pode começar a chover, diminuindo a velocidade do jogador.
+* **Tempestade de Areia:** No Deserto, a visibilidade diminui e o jogador é empurrado levemente para os lados.
+
+---
+
+### 🛠️ Exemplo de como seria a evolução do Crafting no README:
+
+| Item | Receita | Efeito Especial |
+| --- | --- | --- |
+| **Tocha** | 2 Mad + 1 Carvão | Revela o mapa na Caverna |
+| **Botas** | 4 Carnes (Couro) | Aumenta a velocidade em +2 |
+| **Picareta de Ouro** | 10 Ped + 5 Ouro | Coleta 5 pedras por vez |
+
