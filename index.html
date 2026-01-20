@@ -77,7 +77,6 @@
         let arvores = [], pedras = [], porcos = [], cactos = [], cachorros = [], zumbis = [];
         let isMoving = false;
 
-        // Limpa as teclas para evitar que o personagem ande sozinho após alertas
         function resetTeclas() {
             teclas = {};
             isMoving = false;
@@ -181,6 +180,37 @@
             ctx.restore();
         }
 
+        // --- NOVA FUNÇÃO PARA A SETA ---
+        function drawIndicator() {
+            // Se estivermos longe da cama ou em outro mapa
+            if (mapaX !== 0 || mapaY !== 0 || Math.hypot(jogador.x - 105, jogador.y - 92) > 120) {
+                const alvoX = (mapaX === 0) ? 105 : (mapaX > 0 ? 0 : canvas.width);
+                const alvoY = (mapaY === 0) ? 92 : (mapaY > 0 ? canvas.height : 0);
+
+                const angulo = Math.atan2(alvoY - jogador.y, alvoX - jogador.x);
+                
+                // Cor baseada na distância (Amarelo perto, Vermelho longe)
+                const distSocial = Math.abs(mapaX) + Math.abs(mapaY);
+                const corSeta = distSocial === 0 ? "yellow" : "#ff4444";
+
+                ctx.save();
+                ctx.translate(jogador.x + 15, jogador.y + 15);
+                ctx.rotate(angulo);
+                
+                ctx.beginPath();
+                ctx.moveTo(45, 0);   
+                ctx.lineTo(30, -8); 
+                ctx.lineTo(30, 8);  
+                ctx.closePath();
+                
+                ctx.fillStyle = corSeta;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = "black";
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
         function loop() {
             tempoDecorrido += 0.5;
             jogador.frame++;
@@ -189,7 +219,6 @@
             if (vida <= 0) { alert("Game Over!"); location.reload(); }
             atualizarUI();
 
-            // Movimentação
             let oldX = jogador.x; let oldY = jogador.y;
             if (teclas["ArrowUp"] || teclas["w"]) jogador.y -= jogador.vel;
             if (teclas["ArrowDown"] || teclas["s"]) jogador.y += jogador.vel;
@@ -197,52 +226,40 @@
             if (teclas["ArrowRight"] || teclas["d"]) jogador.x += jogador.vel;
             isMoving = (jogador.x !== oldX || jogador.y !== oldY);
 
-            // Troca de Mapa
             if (jogador.x > canvas.width) { mapaX++; jogador.x = 20; gerarCenario(); }
             if (jogador.x < -30) { mapaX--; jogador.x = canvas.width - 40; gerarCenario(); }
             if (jogador.y > canvas.height) { mapaY--; jogador.y = 20; gerarCenario(); }
             if (jogador.y < -30) { mapaY++; jogador.y = canvas.height - 40; gerarCenario(); }
 
-            // Fundo
             let corChao = "#3a9d5d";
             if(mapaX === 1 && mapaY === 0) corChao = "#888";
             if(mapaX === 0 && mapaY === 1) corChao = "#333";
             if(mapaX === 1 && mapaY === 1) corChao = "#edc9af";
             ctx.fillStyle = corChao; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Cactos
             cactos.forEach(c => {
                 ctx.fillStyle = "#2ecc71"; 
                 ctx.fillRect(c.x, c.y, 15, 30);
-                ctx.fillRect(c.x-5, c.y+10, 5, 10);
-                ctx.fillRect(c.x+15, c.y+5, 5, 10);
                 if(Math.hypot(jogador.x-c.x, jogador.y-c.y) < 25) vida -= 0.2;
             });
 
-            // Pedras
             pedras.forEach((p, i) => {
                 ctx.fillStyle = "#666";
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
                 if(Math.hypot(jogador.x-p.x, jogador.y-p.y) < 35) { pedras.splice(i, 1); pedra++; atualizarUI(); }
             });
 
-            // Arvores
             arvores.forEach((a, i) => {
                 ctx.fillStyle = "#5d4037"; ctx.fillRect(a.x+15, a.y+20, 10, 20);
                 ctx.fillStyle = "#2e7d32"; ctx.beginPath(); ctx.arc(a.x+20, a.y+15, 20, 0, 7); ctx.fill();
                 if(Math.hypot(jogador.x-a.x, jogador.y-a.y) < 40) { arvores.splice(i, 1); madeira++; atualizarUI(); }
             });
 
-            // Porcos
             porcos.forEach((p, i) => {
                 ctx.fillStyle = "#ffafbd"; ctx.fillRect(p.x, p.y, 20, 15);
                 if(Math.hypot(jogador.x-p.x, jogador.y-p.y) < 30) { porcos.splice(i, 1); carne++; atualizarUI(); }
             });
 
-            // Zumbis
-            if ((tempoDecorrido > 1200 || (mapaX === 0 && mapaY === 1)) && zumbis.length < 4) {
-                if (Math.random() < 0.005) zumbis.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height });
-            }
             zumbis.forEach((z, i) => {
                 z.x += (jogador.x - z.x) * 0.01;
                 z.y += (jogador.y - z.y) * 0.01;
@@ -253,7 +270,6 @@
                 }
             });
 
-            // Cachorro
             cachorros.forEach(dog => {
                 if (dog.domado) {
                     if (zumbis.length > 0) {
@@ -269,7 +285,6 @@
                 drawDog(dog);
             });
 
-            // Cama
             if(mapaX === 0 && mapaY === 0) {
                 ctx.fillStyle = "#ffeb3b"; ctx.fillRect(80, 80, 50, 25);
                 if(Math.hypot(jogador.x-105, jogador.y-92) < 40 && tempoDecorrido > 1200) { 
@@ -281,8 +296,8 @@
             }
 
             drawPlayer();
+            drawIndicator(); // Chamada da feature restaurada
 
-            // Escuridão
             let escurecimento = tempoDecorrido < 1200 ? 0 : Math.min((tempoDecorrido - 1200) / 2000, 0.85);
             if (mapaX === 0 && mapaY === 1) escurecimento = 0.92;
             ctx.fillStyle = `rgba(0,0,20,${escurecimento})`;
