@@ -1,195 +1,55 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Pomar na Grama</title>
-    <script src="https://unpkg.com/kaplay@3001.0.0-alpha.20/dist/kaplay.js"></script>
-</head>
-<body style="margin: 0;">
-    <script>
-        kaplay();
+Aqui está um **README.md** resumido, organizado para documentar todas as mecânicas, biomas e sistemas implementados no seu código atual.
 
-        // Cor do fundo (Grama)
-        setBackground(46, 139, 87);
+---
 
-        // --- JOGADOR ---
-        const player = add([
-            rect(30, 50),
-            pos(center()),
-            color(0, 100, 255),
-            area(),
-            body(), // Necessário para colisões
-            z(10),  // Altura da camada (para ficar entre o tronco e as folhas)
-            "player"
-        ]);
+# 🌲 Sobrevivência: Biomas e Evolução
 
-        // --- FUNÇÃO PARA CRIAR ÁRVORE ---
-        function addTree(x, y) {
-            // Tronco (Obstáculo)
-            add([
-                rect(20, 40),
-                pos(x, y),
-                color(101, 67, 33),
-                area(),
-                body({ isStatic: true }), // Jogador não consegue empurrar
-                "obstacle"
-            ]);
-            // Copas/Folhas (Visual)
-            add([
-                circle(40),
-                pos(x + 10, y - 10),
-                color(34, 139, 34),
-                z(15), // Fica acima do jogador
-                "leaves"
-            ]);
-        }
+Um jogo de sobrevivência em 2D desenvolvido com **HTML5 Canvas** e **JavaScript**, focado em exploração, coleta de recursos e progressão de equipamentos.
 
-        // --- FUNÇÃO PARA CRIAR FRUTAS ---
-        function addFruit(x, y) {
-            add([
-                circle(10),
-                pos(x, y),
-                color(255, 50, 50), // Maçã vermelha
-                area(),
-                "fruit"
-            ]);
-        }
+## 🚀 Funcionalidades Principais
 
-        // Adicionando elementos no mapa
-        addTree(200, 200);
-        addTree(500, 150);
-        addTree(300, 400);
+* **Ciclo Dia/Noite:** O jogo escurece gradualmente. Ao dormir na cama (no bioma inicial), o dia reseta e o jogador recebe um relatório de coleta.
+* **Resumo de Coleta:** Sempre que amanhece, um alerta exibe a quantidade exata de madeira, pedra e carne coletadas durante o dia anterior.
+* **Sistema de Fome e Vida:** A fome diminui constantemente. Se chegar a zero, o jogador começa a perder vida. A carne pode ser consumida para restaurar a saciedade.
+* **Bússola (Seta Branca):** Uma seta branca flutua ao redor do jogador, apontando permanentemente a direção da cama (ponto inicial), facilitando o retorno à base.
 
-        addFruit(250, 250);
-        addFruit(550, 200);
-        addFruit(100, 300);
+## 🗺️ Biomas e Mapa
 
-        // --- MOVIMENTAÇÃO ---
-        const SPEED = 250;
-        onKeyDown("left", () => player.move(-SPEED, 0));
-        onKeyDown("right", () => player.move(SPEED, 0));
-        onKeyDown("up", () => player.move(0, -SPEED));
-        onKeyDown("down", () => player.move(0, SPEED));
+O mundo é dividido em coordenadas `(X, Y)`. Cada região possui características únicas:
 
-        // --- INTERAÇÃO: COLETAR FRUTAS ---
-        player.onCollide("fruit", (fruit) => {
-            destroy(fruit); // Remove a fruta do jogo
-            add([
-                text("Pegou uma fruta!", { size: 18 }),
-                pos(player.pos),
-                move(UP, 50),
-                lifespan(1), // O texto some depois de 1 segundo
-            ]);
-        });
+| Coordenada | Bioma | Características |
+| --- | --- | --- |
+| **(0, 0)** | **Floresta** | Ponto inicial. Contém a **Cama**, árvores e porcos. |
+| **(1, 0)** | **Pedreira** | Solo rochoso com abundância de pedras para coleta. |
+| **(0, 1)** | **Caverna** | Ambiente subterrâneo com **escuridão constante** e pedras. |
+| **(1, 1)** | **Deserto** | Solo arenoso com **Cactos** que causam dano ao contato. |
 
-    </script>
-</body>
-</html># mundo-infinito
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jogo de Celular - Grama</title>
-    <style>
-        body { margin: 0; overflow: hidden; background: #2e8b57; font-family: sans-serif; touch-action: none; }
-        canvas { display: block; }
-        #placar {
-            position: absolute; top: 10px; left: 10px;
-            color: white; font-size: 20px; font-weight: bold; pointer-events: none;
-        }
-        /* Botões para o celular */
-        .controles {
-            position: absolute; bottom: 20px; left: 20px;
-            display: grid; grid-template-columns: repeat(3, 60px); grid-gap: 10px;
-        }
-        .btn {
-            width: 60px; height: 60px; background: rgba(255,255,255,0.3);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            color: white; font-weight: bold; user-select: none;
-        }
-    </style>
-</head>
-<body>
+## 🛠️ Evolução e Itens
 
-    <div id="placar">Frutas: 0</div>
-    
-    <div class="controles">
-        <div></div><div class="btn" id="up">↑</div><div></div>
-        <div class="btn" id="left">←</div><div class="btn" id="down">↓</div><div class="btn" id="right">→</div>
-    </div>
+O jogador pode evoluir suas ferramentas usando os recursos coletados:
 
-    <canvas id="jogoCanvas"></canvas>
+1. **Mão:** Coleta básica de recursos.
+2. **Espada (5 Madeiras):** Permite derrotar zumbis.
+3. **Picareta (5 Pedras):** Aumenta a eficiência na coleta de pedras.
+4. **Machado (10 Madeiras):** Aumenta a eficiência na coleta de madeira.
+5. **Escudo (10 Pedras):** Fornece proteção total contra ataques de zumbis.
 
-    <script>
-        const canvas = document.getElementById("jogoCanvas");
-        const ctx = canvas.getContext("2d");
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+## 🕹️ Comandos
 
-        let pontos = 0;
-        const jogador = { x: canvas.width/2, y: canvas.height/2, tam: 30, vel: 4 };
-        const teclas = {};
+* **Movimentação:** Teclas `W, A, S, D` ou `Setas do Teclado`.
+* **Controles Touch:** Botões direcionais na interface para dispositivos móveis.
+* **Comer:** Botão "COMER CARNE" (restaura fome).
+* **Crafting:** Botão "CRIAR" (evolui o equipamento atual).
+* **Dormir:** Encostar na cama amarela (Bioma 0,0) durante o final do dia.
 
-        // Itens do cenário
-        const arvores = Array.from({length: 6}, () => ({ x: Math.random()*(canvas.width-40), y: Math.random()*(canvas.height-40) }));
-        let frutas = Array.from({length: 4}, () => ({ x: Math.random()*(canvas.width-20), y: Math.random()*(canvas.height-20), colhida: false }));
+---
 
-        // Eventos de Teclado (PC)
-        window.addEventListener("keydown", (e) => teclas[e.key] = true);
-        window.addEventListener("keyup", (e) => teclas[e.key] = false);
+### 📝 Notas de Desenvolvimento
 
-        // Eventos de Toque (Celular)
-        const configurarBotao = (id, tecla) => {
-            const el = document.getElementById(id);
-            el.addEventListener("touchstart", (e) => { e.preventDefault(); teclas[tecla] = true; });
-            el.addEventListener("touchend", () => teclas[tecla] = false);
-        };
-        configurarBotao("up", "ArrowUp");
-        configurarBotao("down", "ArrowDown");
-        configurarBotao("left", "ArrowLeft");
-        configurarBotao("right", "ArrowRight");
+* O sistema de colisão é baseado em distância euclidiana ().
+* O renderizador utiliza o `requestAnimationFrame` para garantir fluidez a 60 FPS.
+* A escuridão é aplicada via camada de preenchimento `rgba` sobre o canvas principal.
 
-        function loop() {
-            // Movimentação
-            if (teclas["ArrowUp"] || teclas["w"]) jogador.y -= jogador.vel;
-            if (teclas["ArrowDown"] || teclas["s"]) jogador.y += jogador.vel;
-            if (teclas["ArrowLeft"] || teclas["a"]) jogador.x -= jogador.vel;
-            if (teclas["ArrowRight"] || teclas["d"]) jogador.x += jogador.vel;
+---
 
-            // Limites da tela
-            jogador.x = Math.max(0, Math.min(canvas.width - jogador.tam, jogador.x));
-            jogador.y = Math.max(0, Math.min(canvas.height - jogador.tam, jogador.y));
-
-            // Desenhar
-            ctx.fillStyle = "#2e8b57";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Frutas
-            frutas.forEach(f => {
-                if(!f.colhida) {
-                    ctx.fillStyle = "red";
-                    ctx.beginPath(); ctx.arc(f.x, f.y, 10, 0, Math.PI*2); ctx.fill();
-                    if(Math.hypot(jogador.x - f.x, jogador.y - f.y) < 25) {
-                        f.colhida = true; pontos++;
-                        document.getElementById("placar").innerText = "Frutas: " + pontos;
-                        setTimeout(() => { f.x = Math.random()*canvas.width; f.y = Math.random()*canvas.height; f.colhida = false; }, 2000);
-                    }
-                }
-            });
-
-            // Arvores
-            arvores.forEach(a => {
-                ctx.fillStyle = "#5d3a1a"; ctx.fillRect(a.x + 10, a.y + 20, 10, 20);
-                ctx.fillStyle = "#1b4d2e"; ctx.beginPath(); ctx.arc(a.x + 15, a.y + 15, 20, 0, Math.PI*2); ctx.fill();
-            });
-
-            // Jogador
-            ctx.fillStyle = "white";
-            ctx.fillRect(jogador.x, jogador.y, jogador.tam, jogador.tam);
-
-            requestAnimationFrame(loop);
-        }
-        loop();
-    </script>
-</body>
-</html>
+**Gostaria que eu adicionasse uma seção de "Próximos Passos" com ideias de novas ferramentas ou inimigos para o seu projeto?**
