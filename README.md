@@ -1,7 +1,3 @@
-Aqui está um **README.md** resumido, organizado para documentar todas as mecânicas, biomas e sistemas implementados no seu código atual.
-
----
-
 # 🌲 Sobrevivência: Biomas e Evolução
 
 Um jogo de sobrevivência em 2D desenvolvido com **HTML5 Canvas** e **JavaScript**, focado em exploração, coleta de recursos e progressão de equipamentos.
