@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sobrevivência: Fome e Evolução</title>
+    <title>Sobrevivência: Biomas e Evolução</title>
     <style>
         body { margin: 0; overflow: hidden; background: #1a3c1a; font-family: sans-serif; touch-action: none; }
         canvas { display: block; }
@@ -39,7 +39,7 @@
 <body>
 
     <div id="interface">
-        Dia: <span id="diaTxt">1</span> | <span id="localTxt">Grama</span><br>
+        Dia: <span id="diaTxt">1</span> | Bioma: <span id="localTxt">Floresta</span><br>
         Vida: <div class="barra-container"><div id="vida-barra"></div></div>
         Fome: <div class="barra-container"><div id="fome-barra"></div></div>
     </div>
@@ -58,7 +58,6 @@
     <div class="botoes-acao">
         <button id="btn-comer" class="btn-acao" style="background:#27ae60" onclick="comer()">COMER CARNE (🥩)</button>
         <button id="btn-craft" class="btn-acao" onclick="evoluir()">CRIAR ESPADA (5 Mad)</button>
-        <button class="btn-acao" style="background:#2980b9" onclick="tentarDomar()">DOMAR (E)</button>
     </div>
 
     <canvas id="jogoCanvas"></canvas>
@@ -71,25 +70,35 @@
 
         let mapaX = 0, mapaY = 0, diaAtual = 1, tempoDecorrido = 0;
         let vida = 100, fome = 100, madeira = 0, pedra = 0, carne = 0;
-        let nivel = 0; // 0:Mão, 1:Espada, 2:Picareta, 3:Machado, 4:Escudo
-        
-        const jogador = { x: canvas.width/2, y: canvas.height/2, tam: 30, vel: 5 };
+        let nivel = 0; 
+        let coletadosNoDia = { madeira: 0, pedra: 0, carne: 0 };
+
+        const jogador = { x: canvas.width/2, y: canvas.height/2, tam: 30, vel: 5, frame: 0 }; // Adicionado 'frame' para animação
         const teclas = {};
-        let arvores = [], pedras = [], porcos = [], cachorros = [], zumbis = [];
+        let arvores = [], pedras = [], porcos = [], zumbis = [], cactos = [];
+        let isMoving = false; // Para controlar a animação do personagem
 
         function gerarCenario() {
-            arvores = []; pedras = []; zumbis = []; porcos = [];
+            arvores = []; pedras = []; zumbis = []; porcos = []; cactos = [];
             
+            // LÓGICA DE BIOMAS POR COORDENADA
             if (mapaX === 0 && mapaY === 0) {
-                arvores = Array.from({length: 6}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height }));
+                document.getElementById("localTxt").innerText = "Floresta";
+                arvores = Array.from({length: 8}, () => ({ x: Math.random()*(canvas.width-50), y: Math.random()*(canvas.height-50) }));
                 porcos = Array.from({length: 3}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height }));
-                document.getElementById("localTxt").innerText = "Floresta Inicial";
-            } else if (mapaX > 0) {
-                pedras = Array.from({length: 8}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 25 }));
+            } 
+            else if (mapaX === 1 && mapaY === 0) {
                 document.getElementById("localTxt").innerText = "Pedreira";
-            } else {
-                porcos = Array.from({length: 4}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height }));
-                document.getElementById("localTxt").innerText = "Pradaria";
+                pedras = Array.from({length: 10}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 25 }));
+            }
+            else if (mapaX === 0 && mapaY === 1) {
+                document.getElementById("localTxt").innerText = "Caverna";
+                pedras = Array.from({length: 15}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 20 }));
+            }
+            else if (mapaX === 1 && mapaY === 1) {
+                document.getElementById("localTxt").innerText = "Deserto";
+                cactos = Array.from({length: 12}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height }));
+                porcos = Array.from({length: 1}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height }));
             }
         }
 
@@ -98,17 +107,13 @@
             if (nivel === 0 && madeira >= 5) { madeira -= 5; nivel = 1; btn.innerText = "CRIAR PICARETA (5 Ped)"; }
             else if (nivel === 1 && pedra >= 5) { pedra -= 5; nivel = 2; btn.innerText = "CRIAR MACHADO (10 Mad)"; }
             else if (nivel === 2 && madeira >= 10) { madeira -= 10; nivel = 3; btn.innerText = "CRIAR ESCUDO (10 Ped)"; }
-            else if (nivel === 3 && pedra >= 10) { pedra -= 10; nivel = 4; btn.innerText = "NÍVEL MÁXIMO"; btn.style.background = "#555"; }
-            
             const nomes = ["Mão", "Espada ⚔️", "Picareta ⛏️", "Machado 🪓", "Escudo 🛡️"];
             document.getElementById("itensTxt").innerText = nomes[nivel];
             atualizarUI();
         }
 
         function comer() {
-            if (carne > 0 && fome < 100) {
-                carne--; fome = Math.min(100, fome + 30); atualizarUI();
-            }
+            if (carne > 0 && fome < 100) { carne--; fome = Math.min(100, fome + 30); atualizarUI(); }
         }
 
         function atualizarUI() {
@@ -120,77 +125,154 @@
             document.getElementById("diaTxt").innerText = diaAtual;
         }
 
-        function tentarDomar() {
-            cachorros.forEach(c => { if (!c.domado && Math.hypot(jogador.x - c.x, jogador.y - c.y) < 70) { c.domado = true; c.cor = "#fff"; } });
+        function desenharSetaCama() {
+            let alvoX = (0 - mapaX) * canvas.width + 105;
+            let alvoY = (0 - mapaY) * -canvas.height + 92; 
+            let dx = alvoX - jogador.x;
+            let dy = alvoY - jogador.y;
+            let angulo = Math.atan2(dy, dx);
+            ctx.save();
+            ctx.translate(jogador.x + 15, jogador.y + 15);
+            ctx.rotate(angulo);
+            ctx.fillStyle = "white";
+            ctx.beginPath(); ctx.moveTo(40, 0); ctx.lineTo(30, -10); ctx.lineTo(30, 10); ctx.fill();
+            ctx.restore();
+        }
+        
+        // NOVA FUNÇÃO PARA DESENHAR O PERSONAGEM
+        function drawPlayer() {
+            ctx.save();
+            ctx.translate(jogador.x + jogador.tam / 2, jogador.y + jogador.tam / 2); // Centraliza a origem
+            ctx.fillStyle = "#00e5ff"; // Cor do personagem
+
+            // Animação simples de movimento
+            let armOffset = isMoving ? Math.sin(jogador.frame * 0.1) * 5 : 0;
+            let legOffset = isMoving ? Math.sin(jogador.frame * 0.1 + Math.PI) * 5 : 0; // Pernas opostas aos braços
+
+            // Corpo
+            ctx.fillRect(-5, -10, 10, 20); // Corpo central
+
+            // Cabeça
+            ctx.beginPath();
+            ctx.arc(0, -15, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Braços
+            ctx.fillRect(-10, -8 + armOffset, 5, 15); // Braço esquerdo
+            ctx.fillRect(5, -8 - armOffset, 5, 15);  // Braço direito
+
+            // Pernas
+            ctx.fillRect(-8, 10 + legOffset, 5, 15); // Perna esquerda
+            ctx.fillRect(3, 10 - legOffset, 5, 15); // Perna direita
+
+            // Escudo (se nível 4)
+            if (nivel === 4) {
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(-15, -5, 10, 0, Math.PI * 2); // Desenha um escudo circular
+                ctx.stroke();
+            }
+
+            ctx.restore();
         }
 
-        window.onkeydown = (e) => { teclas[e.key] = true; if(e.key.toLowerCase()==='e') tentarDomar(); };
-        window.onkeyup = (e) => teclas[e.key] = false;
+        window.onkeydown = (e) => { teclas[e.key] = true; isMoving = true; };
+        window.onkeyup = (e) => { teclas[e.key] = false; if (!Object.values(teclas).some(v => v)) isMoving = false; };
         const configurarBotao = (id, tecla) => {
             const el = document.getElementById(id);
-            el.ontouchstart = (e) => { e.preventDefault(); teclas[tecla] = true; };
-            el.ontouchend = () => teclas[tecla] = false;
+            el.ontouchstart = (e) => { e.preventDefault(); teclas[tecla] = true; isMoving = true; };
+            el.ontouchend = () => { teclas[tecla] = false; if (!Object.values(teclas).some(v => v)) isMoving = false; };
         };
         ["up","down","left","right"].forEach(id => configurarBotao(id, "Arrow" + id.charAt(0).toUpperCase() + id.slice(1)));
 
         function loop() {
             tempoDecorrido += 0.5;
-            fome -= 0.01; // Fome cai devagar
-            if (fome <= 0) { fome = 0; vida -= 0.05; } // Perde vida se tiver com fome
+            jogador.frame++; // Incrementa o frame para a animação
+            fome -= 0.005;
+            if (fome <= 0) { fome = 0; vida -= 0.05; }
+            if (vida <= 0) { alert("Você morreu!"); location.reload(); }
             atualizarUI();
 
-            let escurecimento = tempoDecorrido < 1200 ? 0 : Math.min((tempoDecorrido - 1200) / 2000, 0.8);
+            // Guarda a posição antiga para verificar movimento
+            let oldX = jogador.x;
+            let oldY = jogador.y;
 
+            // Movimentação
             if (teclas["ArrowUp"] || teclas["w"]) jogador.y -= jogador.vel;
             if (teclas["ArrowDown"] || teclas["s"]) jogador.y += jogador.vel;
             if (teclas["ArrowLeft"] || teclas["a"]) jogador.x -= jogador.vel;
             if (teclas["ArrowRight"] || teclas["d"]) jogador.x += jogador.vel;
 
+            // Verifica se o jogador realmente se moveu neste frame
+            if (jogador.x === oldX && jogador.y === oldY) {
+                isMoving = false;
+            } else {
+                isMoving = true;
+            }
+
+
+            // Troca de Mapa
             if (jogador.x > canvas.width) { mapaX++; jogador.x = 20; gerarCenario(); }
             if (jogador.x < -30) { mapaX--; jogador.x = canvas.width - 40; gerarCenario(); }
             if (jogador.y > canvas.height) { mapaY--; jogador.y = 20; gerarCenario(); }
             if (jogador.y < -30) { mapaY++; jogador.y = canvas.height - 40; gerarCenario(); }
 
-            ctx.fillStyle = (mapaX > 0) ? "#888" : "#3a9d5d";
+            // COR DO CHÃO POR BIOMA
+            let corChao = "#3a9d5d"; // Floresta
+            if(mapaX === 1 && mapaY === 0) corChao = "#888"; // Pedreira
+            if(mapaX === 0 && mapaY === 1) corChao = "#333"; // Caverna
+            if(mapaX === 1 && mapaY === 1) corChao = "#edc9af"; // Deserto
+            
+            ctx.fillStyle = corChao;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Desenhar Porcos (Carne)
-            porcos.forEach((p, i) => {
-                ctx.fillStyle = "#ffafbd"; ctx.fillRect(p.x, p.y, 20, 15);
-                if(Math.hypot(jogador.x-p.x, jogador.y-p.y) < 30) { porcos.splice(i, 1); carne++; atualizarUI(); }
+            // Cactos (Dano)
+            cactos.forEach(c => {
+                ctx.fillStyle = "#2ecc71"; ctx.fillRect(c.x, c.y, 15, 30);
+                ctx.fillStyle = "#27ae60"; ctx.fillRect(c.x-5, c.y+5, 5, 10); ctx.fillRect(c.x+15, c.y+10, 5, 10);
+                if(Math.hypot(jogador.x-c.x, jogador.y-c.y) < 25) vida -= 0.2;
             });
 
+            // Porcos
+            porcos.forEach((p, i) => {
+                ctx.fillStyle = "#ffafbd"; ctx.fillRect(p.x, p.y, 20, 15);
+                if(Math.hypot(jogador.x-p.x, jogador.y-p.y) < 30) { porcos.splice(i, 1); carne++; coletadosNoDia.carne++; atualizarUI(); }
+            });
+
+            // Árvores
             arvores.forEach((a, i) => {
                 ctx.fillStyle = "#5d4037"; ctx.fillRect(a.x+15, a.y+20, 10, 20);
                 ctx.fillStyle = "#2e7d32"; ctx.beginPath(); ctx.arc(a.x+20, a.y+15, 20, 0, 7); ctx.fill();
-                if(Math.hypot(jogador.x-a.x, jogador.y-a.y) < 40) { arvores.splice(i, 1); madeira += (nivel >= 3 ? 3 : 1); atualizarUI(); }
+                if(Math.hypot(jogador.x-a.x, jogador.y-a.y) < 40) { arvores.splice(i, 1); madeira++; coletadosNoDia.madeira++; atualizarUI(); }
             });
 
+            // Pedras
             pedras.forEach((p, i) => {
                 ctx.fillStyle = "#666"; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
-                if(Math.hypot(jogador.x-p.x, jogador.y-p.y) < 40) { pedras.splice(i, 1); pedra += (nivel >= 2 ? 3 : 1); atualizarUI(); }
-            });
-
-            if(tempoDecorrido > 1500 && zumbis.length < 3) zumbis.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height});
-            zumbis.forEach((z, i) => {
-                ctx.fillStyle = "#455a31"; ctx.fillRect(z.x, z.y, 25, 25);
-                z.x += (jogador.x - z.x) * 0.015; z.y += (jogador.y - z.y) * 0.015;
-                if(Math.hypot(jogador.x-z.x, jogador.y-z.y)<30){ 
-                    if(nivel >= 1) zumbis.splice(i, 1); 
-                    else if(nivel < 4) vida -= 0.5; // Escudo (nivel 4) protege 100%
-                }
+                if(Math.hypot(jogador.x-p.x, jogador.y-p.y) < 30) { pedras.splice(i, 1); pedra++; coletadosNoDia.pedra++; atualizarUI(); }
             });
 
             // Cama
             if(mapaX === 0 && mapaY === 0) {
                 ctx.fillStyle = "#ffeb3b"; ctx.fillRect(80, 80, 50, 25);
-                if(Math.hypot(jogador.x-105, jogador.y-92) < 40 && tempoDecorrido > 1800) { tempoDecorrido = 0; diaAtual++; atualizarUI(); alert("Bom dia!"); }
+                if(Math.hypot(jogador.x-105, jogador.y-92) < 40 && tempoDecorrido > 1200) { 
+                    alert(`BOM DIA!\n\nColetado hoje:\n🪵 Mad: ${coletadosNoDia.madeira}\n🪨 Ped: ${coletadosNoDia.pedra}\n🥩 Carne: ${coletadosNoDia.carne}`);
+                    tempoDecorrido = 0; diaAtual++; coletadosNoDia = { madeira: 0, pedra: 0, carne: 0 }; atualizarUI(); 
+                }
             }
 
-            ctx.fillStyle = "#00e5ff"; ctx.fillRect(jogador.x, jogador.y, jogador.tam, jogador.tam);
-            if(nivel === 4) { ctx.strokeStyle = "white"; ctx.lineWidth = 3; ctx.strokeRect(jogador.x-5, jogador.y-5, 40, 40); }
+            // Desenha o Jogador e a Seta
+            drawPlayer(); // CHAMA A NOVA FUNÇÃO AQUI
+            desenharSetaCama();
 
-            ctx.fillStyle = `rgba(0,0,40,${escurecimento})`; ctx.fillRect(0,0,canvas.width,canvas.height);
+            // SISTEMA DE ESCURIDÃO (Ciclo dia/noite ou Caverna)
+            let escurecimento = tempoDecorrido < 1200 ? 0 : Math.min((tempoDecorrido - 1200) / 2000, 0.85);
+            if (mapaX === 0 && mapaY === 1) escurecimento = 0.92; // Caverna é sempre escura
+            
+            ctx.fillStyle = `rgba(0,0,20,${escurecimento})`;
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+
             requestAnimationFrame(loop);
         }
         gerarCenario(); loop();
