@@ -1,51 +1,199 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-    <title>Caminhando na Grama</title>
-    <script src="https://unpkg.com/kaplay@3001.0.0-alpha.20/dist/kaplay.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sobrevivência: Fome e Evolução</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #1a3c1a; font-family: sans-serif; touch-action: none; }
+        canvas { display: block; }
+        #interface {
+            position: absolute; top: 10px; left: 10px; color: white; 
+            font-size: 14px; font-weight: bold; pointer-events: none;
+            text-shadow: 2px 2px 2px black;
+        }
+        .barra-container { width: 150px; height: 12px; background: #555; border: 1px solid #fff; margin-top: 5px; }
+        #vida-barra { width: 100%; height: 100%; background: #ff5252; transition: 0.2s; }
+        #fome-barra { width: 100%; height: 100%; background: #ff9800; transition: 0.2s; }
+        
+        #inventario {
+            position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6);
+            padding: 10px; color: white; border-radius: 5px; font-size: 12px;
+        }
+        .controles {
+            position: absolute; bottom: 20px; left: 20px;
+            display: grid; grid-template-columns: repeat(3, 60px); grid-gap: 8px;
+        }
+        .botoes-acao {
+            position: absolute; bottom: 20px; right: 20px;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .btn {
+            width: 60px; height: 60px; background: rgba(255,255,255,0.2);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 20px; user-select: none; border: 1px solid white;
+        }
+        .btn-acao { width: 130px; height: 45px; border-radius: 5px; font-size: 11px; background: #e67e22; color: white; border: 2px solid #fff; font-weight: bold; cursor: pointer; }
+    </style>
 </head>
-<body style="background-color: #2e8b57; margin: 0; overflow: hidden;">
+<body>
+
+    <div id="interface">
+        Dia: <span id="diaTxt">1</span> | <span id="localTxt">Grama</span><br>
+        Vida: <div class="barra-container"><div id="vida-barra"></div></div>
+        Fome: <div class="barra-container"><div id="fome-barra"></div></div>
+    </div>
+
+    <div id="inventario">
+        🪵 Mad: <span id="madTxt">0</span> | 🪨 Ped: <span id="pedTxt">0</span><br>
+        🥩 Carne: <span id="carneTxt">0</span><br>
+        🛠️ <span id="itensTxt">Mão</span>
+    </div>
+    
+    <div class="controles">
+        <div></div><div class="btn" id="up">↑</div><div></div>
+        <div class="btn" id="left">←</div><div class="btn" id="down">↓</div><div class="btn" id="right">→</div>
+    </div>
+
+    <div class="botoes-acao">
+        <button id="btn-comer" class="btn-acao" style="background:#27ae60" onclick="comer()">COMER CARNE (🥩)</button>
+        <button id="btn-craft" class="btn-acao" onclick="evoluir()">CRIAR ESPADA (5 Mad)</button>
+        <button class="btn-acao" style="background:#2980b9" onclick="tentarDomar()">DOMAR (E)</button>
+    </div>
+
+    <canvas id="jogoCanvas"></canvas>
+
     <script>
-        // Inicializa o jogo
-        kaplay();
+        const canvas = document.getElementById("jogoCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-        // Define a cor do fundo (Verde Grama)
-        setBackground(46, 139, 87);
+        let mapaX = 0, mapaY = 0, diaAtual = 1, tempoDecorrido = 0;
+        let vida = 100, fome = 100, madeira = 0, pedra = 0, carne = 0;
+        let nivel = 0; // 0:Mão, 1:Espada, 2:Picareta, 3:Machado, 4:Escudo
+        
+        const jogador = { x: canvas.width/2, y: canvas.height/2, tam: 30, vel: 5 };
+        const teclas = {};
+        let arvores = [], pedras = [], porcos = [], cachorros = [], zumbis = [];
 
-        // Cria o jogador (um quadrado azul por enquanto)
-        const player = add([
-            rect(40, 60), // Largura e altura
-            pos(center()), // Começa no centro
-            color(0, 0, 255), // Azul
-            area(), // Permite colisões
-            "player"
-        ]);
+        function gerarCenario() {
+            arvores = []; pedras = []; zumbis = []; porcos = [];
+            
+            if (mapaX === 0 && mapaY === 0) {
+                arvores = Array.from({length: 6}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height }));
+                porcos = Array.from({length: 3}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height }));
+                document.getElementById("localTxt").innerText = "Floresta Inicial";
+            } else if (mapaX > 0) {
+                pedras = Array.from({length: 8}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 25 }));
+                document.getElementById("localTxt").innerText = "Pedreira";
+            } else {
+                porcos = Array.from({length: 4}, () => ({ x: Math.random()*canvas.width, y: Math.random()*canvas.height }));
+                document.getElementById("localTxt").innerText = "Pradaria";
+            }
+        }
 
-        // Velocidade de caminhada
-        const SPEED = 200;
+        function evoluir() {
+            const btn = document.getElementById("btn-craft");
+            if (nivel === 0 && madeira >= 5) { madeira -= 5; nivel = 1; btn.innerText = "CRIAR PICARETA (5 Ped)"; }
+            else if (nivel === 1 && pedra >= 5) { pedra -= 5; nivel = 2; btn.innerText = "CRIAR MACHADO (10 Mad)"; }
+            else if (nivel === 2 && madeira >= 10) { madeira -= 10; nivel = 3; btn.innerText = "CRIAR ESCUDO (10 Ped)"; }
+            else if (nivel === 3 && pedra >= 10) { pedra -= 10; nivel = 4; btn.innerText = "NÍVEL MÁXIMO"; btn.style.background = "#555"; }
+            
+            const nomes = ["Mão", "Espada ⚔️", "Picareta ⛏️", "Machado 🪓", "Escudo 🛡️"];
+            document.getElementById("itensTxt").innerText = nomes[nivel];
+            atualizarUI();
+        }
 
-        // Comandos de movimento
-        onKeyDown("left", () => {
-            player.move(-SPEED, 0);
-        });
+        function comer() {
+            if (carne > 0 && fome < 100) {
+                carne--; fome = Math.min(100, fome + 30); atualizarUI();
+            }
+        }
 
-        onKeyDown("right", () => {
-            player.move(SPEED, 0);
-        });
+        function atualizarUI() {
+            document.getElementById("madTxt").innerText = madeira;
+            document.getElementById("pedTxt").innerText = pedra;
+            document.getElementById("carneTxt").innerText = carne;
+            document.getElementById("vida-barra").style.width = vida + "%";
+            document.getElementById("fome-barra").style.width = fome + "%";
+            document.getElementById("diaTxt").innerText = diaAtual;
+        }
 
-        onKeyDown("up", () => {
-            player.move(0, -SPEED);
-        });
+        function tentarDomar() {
+            cachorros.forEach(c => { if (!c.domado && Math.hypot(jogador.x - c.x, jogador.y - c.y) < 70) { c.domado = true; c.cor = "#fff"; } });
+        }
 
-        onKeyDown("down", () => {
-            player.move(0, SPEED);
-        });
+        window.onkeydown = (e) => { teclas[e.key] = true; if(e.key.toLowerCase()==='e') tentarDomar(); };
+        window.onkeyup = (e) => teclas[e.key] = false;
+        const configurarBotao = (id, tecla) => {
+            const el = document.getElementById(id);
+            el.ontouchstart = (e) => { e.preventDefault(); teclas[tecla] = true; };
+            el.ontouchend = () => teclas[tecla] = false;
+        };
+        ["up","down","left","right"].forEach(id => configurarBotao(id, "Arrow" + id.charAt(0).toUpperCase() + id.slice(1)));
 
-        // Adiciona um texto simples
-        add([
-            text("Use as setas para andar na grama", { size: 24 }),
-            pos(20, 20),
-        ]);
+        function loop() {
+            tempoDecorrido += 0.5;
+            fome -= 0.01; // Fome cai devagar
+            if (fome <= 0) { fome = 0; vida -= 0.05; } // Perde vida se tiver com fome
+            atualizarUI();
+
+            let escurecimento = tempoDecorrido < 1200 ? 0 : Math.min((tempoDecorrido - 1200) / 2000, 0.8);
+
+            if (teclas["ArrowUp"] || teclas["w"]) jogador.y -= jogador.vel;
+            if (teclas["ArrowDown"] || teclas["s"]) jogador.y += jogador.vel;
+            if (teclas["ArrowLeft"] || teclas["a"]) jogador.x -= jogador.vel;
+            if (teclas["ArrowRight"] || teclas["d"]) jogador.x += jogador.vel;
+
+            if (jogador.x > canvas.width) { mapaX++; jogador.x = 20; gerarCenario(); }
+            if (jogador.x < -30) { mapaX--; jogador.x = canvas.width - 40; gerarCenario(); }
+            if (jogador.y > canvas.height) { mapaY--; jogador.y = 20; gerarCenario(); }
+            if (jogador.y < -30) { mapaY++; jogador.y = canvas.height - 40; gerarCenario(); }
+
+            ctx.fillStyle = (mapaX > 0) ? "#888" : "#3a9d5d";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Desenhar Porcos (Carne)
+            porcos.forEach((p, i) => {
+                ctx.fillStyle = "#ffafbd"; ctx.fillRect(p.x, p.y, 20, 15);
+                if(Math.hypot(jogador.x-p.x, jogador.y-p.y) < 30) { porcos.splice(i, 1); carne++; atualizarUI(); }
+            });
+
+            arvores.forEach((a, i) => {
+                ctx.fillStyle = "#5d4037"; ctx.fillRect(a.x+15, a.y+20, 10, 20);
+                ctx.fillStyle = "#2e7d32"; ctx.beginPath(); ctx.arc(a.x+20, a.y+15, 20, 0, 7); ctx.fill();
+                if(Math.hypot(jogador.x-a.x, jogador.y-a.y) < 40) { arvores.splice(i, 1); madeira += (nivel >= 3 ? 3 : 1); atualizarUI(); }
+            });
+
+            pedras.forEach((p, i) => {
+                ctx.fillStyle = "#666"; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
+                if(Math.hypot(jogador.x-p.x, jogador.y-p.y) < 40) { pedras.splice(i, 1); pedra += (nivel >= 2 ? 3 : 1); atualizarUI(); }
+            });
+
+            if(tempoDecorrido > 1500 && zumbis.length < 3) zumbis.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height});
+            zumbis.forEach((z, i) => {
+                ctx.fillStyle = "#455a31"; ctx.fillRect(z.x, z.y, 25, 25);
+                z.x += (jogador.x - z.x) * 0.015; z.y += (jogador.y - z.y) * 0.015;
+                if(Math.hypot(jogador.x-z.x, jogador.y-z.y)<30){ 
+                    if(nivel >= 1) zumbis.splice(i, 1); 
+                    else if(nivel < 4) vida -= 0.5; // Escudo (nivel 4) protege 100%
+                }
+            });
+
+            // Cama
+            if(mapaX === 0 && mapaY === 0) {
+                ctx.fillStyle = "#ffeb3b"; ctx.fillRect(80, 80, 50, 25);
+                if(Math.hypot(jogador.x-105, jogador.y-92) < 40 && tempoDecorrido > 1800) { tempoDecorrido = 0; diaAtual++; atualizarUI(); alert("Bom dia!"); }
+            }
+
+            ctx.fillStyle = "#00e5ff"; ctx.fillRect(jogador.x, jogador.y, jogador.tam, jogador.tam);
+            if(nivel === 4) { ctx.strokeStyle = "white"; ctx.lineWidth = 3; ctx.strokeRect(jogador.x-5, jogador.y-5, 40, 40); }
+
+            ctx.fillStyle = `rgba(0,0,40,${escurecimento})`; ctx.fillRect(0,0,canvas.width,canvas.height);
+            requestAnimationFrame(loop);
+        }
+        gerarCenario(); loop();
     </script>
 </body>
 </html>
