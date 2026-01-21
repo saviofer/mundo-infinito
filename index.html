@@ -181,6 +181,37 @@
             ctx.restore();
         }
 
+        // --- NOVA FUNÇÃO PARA A SETA ---
+        function drawIndicator() {
+            // Se estivermos longe da cama ou em outro mapa
+            if (mapaX !== 0 || mapaY !== 0 || Math.hypot(jogador.x - 105, jogador.y - 92) > 120) {
+                const alvoX = (mapaX === 0) ? 105 : (mapaX > 0 ? 0 : canvas.width);
+                const alvoY = (mapaY === 0) ? 92 : (mapaY > 0 ? canvas.height : 0);
+
+                const angulo = Math.atan2(alvoY - jogador.y, alvoX - jogador.x);
+                
+                // Cor baseada na distância (Amarelo perto, Vermelho longe)
+                const distSocial = Math.abs(mapaX) + Math.abs(mapaY);
+                const corSeta = distSocial === 0 ? "yellow" : "#ff4444";
+
+                ctx.save();
+                ctx.translate(jogador.x + 15, jogador.y + 15);
+                ctx.rotate(angulo);
+                
+                ctx.beginPath();
+                ctx.moveTo(45, 0);   
+                ctx.lineTo(30, -8); 
+                ctx.lineTo(30, 8);  
+                ctx.closePath();
+                
+                ctx.fillStyle = corSeta;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = "black";
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
         function loop() {
             tempoDecorrido += 0.5;
             jogador.frame++;
@@ -281,6 +312,7 @@
             }
 
             drawPlayer();
+            drawIndicator(); // Chamada da feature restaurada
 
             // Escuridão
             let escurecimento = tempoDecorrido < 1200 ? 0 : Math.min((tempoDecorrido - 1200) / 2000, 0.85);
